@@ -436,6 +436,141 @@
     .nav-links{ display: none; }
     .muestras-head{ flex-direction: column; align-items: flex-start; }
   }
+
+  /* ---------- ADMIN ---------- */
+
+  .admin-link{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    background: none;
+  }
+  .admin-link:hover{ color: var(--mustard); border-color: var(--mustard-dim); }
+
+  .overlay{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,8,5,0.82);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .overlay.open{ display: flex; }
+
+  .overlay-box{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    padding: 32px;
+    position: relative;
+  }
+  .overlay-box.small{ max-width: 360px; }
+  .overlay-box.large{ max-width: 760px; max-height: 84vh; overflow-y: auto; }
+
+  .overlay-close{
+    position: absolute;
+    top: 18px; right: 18px;
+    background: none; border: none;
+    color: var(--text-faint);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .overlay-close:hover{ color: var(--mustard); }
+
+  .overlay-box h3{ font-size: 20px; margin-bottom: 6px; }
+  .overlay-box .sub{ font-size: 13px; color: var(--text-dim); margin-bottom: 22px; }
+
+  .field{ margin-bottom: 16px; }
+  .field label{
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .field input, .field textarea{
+    width: 100%;
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+  }
+  .field input:focus, .field textarea:focus{
+    outline: none;
+    border-color: var(--mustard-dim);
+  }
+  .field .hint{
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-top: 5px;
+  }
+
+  .form-actions{ display: flex; gap: 10px; margin-top: 20px; }
+
+  .admin-msg{
+    font-size: 13px;
+    margin-top: 10px;
+    color: var(--mustard);
+    display: none;
+  }
+  .admin-msg.show{ display: block; }
+
+  .admin-list{ margin-top: 4px; }
+  .admin-list-item{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .admin-list-item:last-child{ border-bottom: none; }
+  .admin-item-info{ font-size: 13px; }
+  .admin-item-info b{ font-family: 'Fraunces', serif; font-size: 15px; font-weight: 500; display: block; }
+  .admin-item-info span{ color: var(--text-faint); font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  .admin-item-actions{ display: flex; gap: 8px; flex-shrink: 0; }
+  .icon-btn{
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .icon-btn:hover{ border-color: var(--mustard-dim); color: var(--mustard-pale); }
+  .icon-btn.danger:hover{ border-color: #b3492f; color: #d9705a; }
+
+  .admin-panel-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+
+  .divider{ border-top: 1px solid var(--border-soft); margin: 26px 0; }
+
+  .export-box textarea{
+    height: 120px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    resize: vertical;
+  }
 </style>
 </head>
 <body>
@@ -545,9 +680,85 @@
 <footer>
   <div class="wrap footer-inner">
     <span>madeweb — hacemos cualquier página web que necesites</span>
-    <span>Popayán, Cauca</span>
+    <button class="admin-link" id="btn-open-login">Administrar muestras</button>
   </div>
 </footer>
+
+<!-- LOGIN -->
+<div class="overlay" id="overlay-login">
+  <div class="overlay-box small">
+    <button class="overlay-close" data-close="overlay-login">&times;</button>
+    <h3>Administrar muestras</h3>
+    <p class="sub">Ingresa la contraseña para agregar, editar o borrar muestras.</p>
+    <div class="field">
+      <label for="admin-pass">Contraseña</label>
+      <input type="password" id="admin-pass" placeholder="••••••••">
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="btn-login" style="width:100%;">Entrar</button>
+    </div>
+    <p class="admin-msg" id="login-error">Contraseña incorrecta.</p>
+  </div>
+</div>
+
+<!-- PANEL DE ADMINISTRACIÓN -->
+<div class="overlay" id="overlay-admin">
+  <div class="overlay-box large">
+    <button class="overlay-close" data-close="overlay-admin">&times;</button>
+    <div class="admin-panel-head">
+      <div>
+        <h3>Panel de muestras</h3>
+        <p class="sub">Los cambios se guardan en este navegador. Para que se vean en el sitio publicado, copia el código al final y envíalo a quien lo publica.</p>
+      </div>
+      <button class="icon-btn" id="btn-logout">Salir</button>
+    </div>
+
+    <div id="admin-form-wrap">
+      <div class="field">
+        <label for="f-titulo">Nombre del proyecto</label>
+        <input type="text" id="f-titulo" placeholder="Ej: Salón Bella">
+      </div>
+      <div class="field">
+        <label for="f-categoria">Categoría</label>
+        <input type="text" id="f-categoria" placeholder="Ej: Peluquería">
+      </div>
+      <div class="field">
+        <label for="f-dominio">Dominio a mostrar</label>
+        <input type="text" id="f-dominio" placeholder="Ej: salonbella.com">
+      </div>
+      <div class="field">
+        <label for="f-descripcion">Descripción corta</label>
+        <input type="text" id="f-descripcion" placeholder="Qué hace la página, en una línea">
+      </div>
+      <div class="field">
+        <label for="f-video">Link del video</label>
+        <input type="text" id="f-video" placeholder="https://... (enlace directo al video, ej. de YouTube o Google Drive)">
+        <p class="hint">Sube el video a algún lugar (YouTube, Google Drive, etc.) y pega aquí el link. Esta página no puede recibir archivos directamente.</p>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" id="btn-save">Agregar muestra</button>
+        <button class="btn btn-ghost" id="btn-cancel-edit" style="display:none;">Cancelar edición</button>
+      </div>
+      <p class="admin-msg" id="save-msg">Guardado.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <h3 style="font-size:16px;">Muestras actuales</h3>
+    <div class="admin-list" id="admin-list"></div>
+
+    <div class="divider"></div>
+
+    <div class="export-box">
+      <div class="field">
+        <label>Código para publicar (cópialo y envíalo a quien actualiza el sitio)</label>
+        <textarea id="export-code" readonly></textarea>
+      </div>
+      <button class="icon-btn" id="btn-copy-export">Copiar código</button>
+      <p class="admin-msg" id="copy-msg">Copiado.</p>
+    </div>
+  </div>
+</div>
 
 <script>
   /* ------------------------------------------------------------
@@ -563,13 +774,13 @@
     `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(WHATSAPP_MENSAJE)}`;
 
   /* ------------------------------------------------------------
-     2) Tus proyectos de muestra.
-        - video: ruta a tu archivo .mp4 (por ejemplo "videos/restaurante.mp4")
-                 o una URL. Si lo dejas vacío (""), se muestra un marcador
-                 de posición en vez del video.
+     2) Tus proyectos de muestra (valores por defecto — se usan la
+        primera vez, antes de que agregues/edites nada desde el panel).
+        - video: link directo al video (YouTube, Drive, tu propio hosting...).
+          Si lo dejas vacío (""), se muestra un marcador de posición.
         - poster: imagen que se ve antes de dar play (opcional).
   ------------------------------------------------------------ */
-  const MUESTRAS = [
+  const MUESTRAS_POR_DEFECTO = [
     {
       categoria: "Restaurante",
       dominio: "labraza-express.com",
@@ -604,32 +815,201 @@
     }
   ];
 
+  /* ------------------------------------------------------------
+     3) Contraseña del panel de administración.
+        Aviso: esta contraseña queda visible en el código de la
+        página. Sirve como candado sencillo, no como seguridad real
+        — no la uses también en otras cuentas importantes.
+  ------------------------------------------------------------ */
+  const ADMIN_PASSWORD = "web123";
+
+  const STORAGE_KEY = "madeweb-muestras";
+  let muestras = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || MUESTRAS_POR_DEFECTO.slice();
+  let editandoIndex = null;
+
   const grid = document.getElementById("grid-muestras");
 
-  MUESTRAS.forEach(m => {
-    const card = document.createElement("div");
-    card.className = "card";
+  function renderGrid(){
+    grid.innerHTML = "";
+    muestras.forEach(m => {
+      const card = document.createElement("div");
+      card.className = "card";
 
-    const mediaClass = m.video ? "card-media" : "card-media placeholder";
-    const mediaInner = m.video
-      ? `<video controls preload="metadata" ${m.poster ? `poster="${m.poster}"` : ""}>
-           <source src="${m.video}" type="video/mp4">
-         </video>`
-      : "";
+      const mediaClass = m.video ? "card-media" : "card-media placeholder";
+      const mediaInner = m.video
+        ? `<video controls preload="metadata" ${m.poster ? `poster="${m.poster}"` : ""}>
+             <source src="${m.video}" type="video/mp4">
+           </video>`
+        : "";
 
-    card.innerHTML = `
-      <div class="card-bar">
-        <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
-        <span class="card-url">${m.dominio}</span>
-      </div>
-      <div class="${mediaClass}">${mediaInner}</div>
-      <div class="card-body">
-        <span class="card-tag">${m.categoria}</span>
-        <h3>${m.titulo}</h3>
-        <p>${m.descripcion}</p>
-      </div>
-    `;
-    grid.appendChild(card);
+      card.innerHTML = `
+        <div class="card-bar">
+          <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+          <span class="card-url">${m.dominio}</span>
+        </div>
+        <div class="${mediaClass}">${mediaInner}</div>
+        <div class="card-body">
+          <span class="card-tag">${m.categoria}</span>
+          <h3>${m.titulo}</h3>
+          <p>${m.descripcion}</p>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function guardar(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(muestras));
+    renderGrid();
+    renderAdminList();
+    renderExport();
+  }
+
+  renderGrid();
+
+  /* ---------------- ADMIN: apertura y cierre de ventanas ---------------- */
+
+  const overlayLogin = document.getElementById("overlay-login");
+  const overlayAdmin = document.getElementById("overlay-admin");
+
+  document.getElementById("btn-open-login").addEventListener("click", () => {
+    if (sessionStorage.getItem("madeweb-admin") === "1") {
+      abrirAdmin();
+    } else {
+      overlayLogin.classList.add("open");
+    }
+  });
+
+  document.querySelectorAll("[data-close]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.getElementById(btn.dataset.close).classList.remove("open");
+    });
+  });
+
+  document.getElementById("btn-login").addEventListener("click", () => {
+    const val = document.getElementById("admin-pass").value;
+    if (val === ADMIN_PASSWORD) {
+      sessionStorage.setItem("madeweb-admin", "1");
+      document.getElementById("admin-pass").value = "";
+      document.getElementById("login-error").classList.remove("show");
+      overlayLogin.classList.remove("open");
+      abrirAdmin();
+    } else {
+      document.getElementById("login-error").classList.add("show");
+    }
+  });
+
+  document.getElementById("btn-logout").addEventListener("click", () => {
+    sessionStorage.removeItem("madeweb-admin");
+    overlayAdmin.classList.remove("open");
+  });
+
+  function abrirAdmin(){
+    overlayAdmin.classList.add("open");
+    renderAdminList();
+    renderExport();
+  }
+
+  /* ---------------- ADMIN: lista, agregar, editar, borrar ---------------- */
+
+  function renderAdminList(){
+    const list = document.getElementById("admin-list");
+    list.innerHTML = "";
+    muestras.forEach((m, i) => {
+      const row = document.createElement("div");
+      row.className = "admin-list-item";
+      row.innerHTML = `
+        <div class="admin-item-info">
+          <b>${m.titulo}</b>
+          <span>${m.categoria} · ${m.dominio}${m.video ? "" : " · sin video"}</span>
+        </div>
+        <div class="admin-item-actions">
+          <button class="icon-btn" data-edit="${i}">Editar</button>
+          <button class="icon-btn danger" data-del="${i}">Borrar</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    list.querySelectorAll("[data-edit]").forEach(btn => {
+      btn.addEventListener("click", () => cargarParaEditar(Number(btn.dataset.edit)));
+    });
+    list.querySelectorAll("[data-del]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (confirm("¿Borrar esta muestra?")) {
+          muestras.splice(Number(btn.dataset.del), 1);
+          guardar();
+        }
+      });
+    });
+  }
+
+  function cargarParaEditar(i){
+    editandoIndex = i;
+    const m = muestras[i];
+    document.getElementById("f-titulo").value = m.titulo;
+    document.getElementById("f-categoria").value = m.categoria;
+    document.getElementById("f-dominio").value = m.dominio;
+    document.getElementById("f-descripcion").value = m.descripcion;
+    document.getElementById("f-video").value = m.video;
+    document.getElementById("btn-save").textContent = "Guardar cambios";
+    document.getElementById("btn-cancel-edit").style.display = "inline-flex";
+    document.getElementById("admin-form-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function limpiarFormulario(){
+    editandoIndex = null;
+    ["f-titulo","f-categoria","f-dominio","f-descripcion","f-video"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("btn-save").textContent = "Agregar muestra";
+    document.getElementById("btn-cancel-edit").style.display = "none";
+  }
+
+  document.getElementById("btn-cancel-edit").addEventListener("click", limpiarFormulario);
+
+  document.getElementById("btn-save").addEventListener("click", () => {
+    const titulo = document.getElementById("f-titulo").value.trim();
+    const categoria = document.getElementById("f-categoria").value.trim();
+    const dominio = document.getElementById("f-dominio").value.trim();
+    const descripcion = document.getElementById("f-descripcion").value.trim();
+    const video = document.getElementById("f-video").value.trim();
+
+    if (!titulo || !dominio) {
+      alert("Al menos pon un nombre de proyecto y un dominio.");
+      return;
+    }
+
+    const nueva = { titulo, categoria: categoria || "Proyecto", dominio, descripcion, video, poster: "" };
+
+    if (editandoIndex !== null) {
+      muestras[editandoIndex] = nueva;
+    } else {
+      muestras.push(nueva);
+    }
+
+    guardar();
+    limpiarFormulario();
+
+    const msg = document.getElementById("save-msg");
+    msg.classList.add("show");
+    setTimeout(() => msg.classList.remove("show"), 2000);
+  });
+
+  /* ---------------- ADMIN: exportar código para publicar ---------------- */
+
+  function renderExport(){
+    const codigo = "const MUESTRAS_POR_DEFECTO = " + JSON.stringify(muestras, null, 2) + ";";
+    document.getElementById("export-code").value = codigo;
+  }
+
+  document.getElementById("btn-copy-export").addEventListener("click", () => {
+    const box = document.getElementById("export-code");
+    box.select();
+    document.execCommand("copy");
+    const msg = document.getElementById("copy-msg");
+    msg.classList.add("show");
+    setTimeout(() => msg.classList.remove("show"), 2000);
   });
 </script>
 
