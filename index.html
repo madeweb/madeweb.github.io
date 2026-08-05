@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Madeweb — Páginas web para tu negocio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+  /* ============================================================
+     CONFIGURACIÓN RÁPIDA
+     - Cambia el número de WhatsApp en WHATSAPP_NUMERO (abajo, en el <script>)
+     - Agrega o edita tus proyectos de muestra en el array MUESTRAS (abajo, en el <script>)
+     - Cada muestra necesita: titulo, categoria, dominio (para la barra falsa del navegador),
+       descripcion y video (ruta o URL a tu archivo .mp4). Si "video" queda vacío,
+       se muestra un marcador de posición.
+     ============================================================ */
+
+  :root{
+    --bg: #14110c;
+    --bg-alt: #1a1610;
+    --panel: #1f1911;
+    --panel-2: #251e14;
+    --border: #362a19;
+    --border-soft: #2a2115;
+    --mustard: #d9a521;
+    --mustard-dim: #a3791c;
+    --mustard-pale: #f0d896;
+    --text: #f4eee0;
+    --text-dim: #ab9f89;
+    --text-faint: #746a58;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection{ background: var(--mustard); color: #1a1408; }
+
+  a{ color: inherit; text-decoration: none; }
+
+  .wrap{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  .eyebrow{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mustard);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width: 22px;
+    height: 1px;
+    background: var(--mustard-dim);
+    display: inline-block;
+  }
+
+  h1, h2, h3{
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  /* ---------- NAV ---------- */
+
+  header.nav{
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(20,17,12,0.86);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .nav-inner{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .wordmark{
+    font-family: 'Fraunces', serif;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .wordmark span{ color: var(--mustard); }
+
+  .nav-links{
+    display: flex;
+    gap: 34px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .nav-links a:hover{ color: var(--text); }
+
+  .btn{
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 11px 22px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all .15s ease;
+  }
+  .btn-primary{
+    background: var(--mustard);
+    color: #1a1408;
+  }
+  .btn-primary:hover{ background: var(--mustard-pale); }
+
+  .btn-ghost{
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .btn-ghost:hover{ border-color: var(--mustard-dim); color: var(--mustard-pale); }
+
+  /* ---------- HERO ---------- */
+
+  .hero{
+    padding: 96px 0 110px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-grid{
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 64px;
+    align-items: center;
+  }
+
+  .hero h1{
+    font-size: 50px;
+    line-height: 1.08;
+    margin: 22px 0 26px;
+  }
+  .hero h1 em{
+    font-style: normal;
+    color: var(--mustard);
+  }
+
+  .hero p.lead{
+    font-size: 17px;
+    color: var(--text-dim);
+    max-width: 480px;
+    margin-bottom: 36px;
+  }
+
+  .hero-ctas{ display: flex; gap: 14px; margin-bottom: 40px; }
+
+  .hero-tags{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .hero-tags span{
+    border: 1px solid var(--border);
+    padding: 5px 11px;
+    border-radius: 2px;
+  }
+
+  /* stacked browser mockups — signature element */
+
+  .mock-stack{
+    position: relative;
+    height: 420px;
+  }
+
+  .mock{
+    position: absolute;
+    width: 88%;
+    border-radius: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+
+  .mock-1{ top: 10px; left: 0; transform: rotate(-4deg); z-index: 1; opacity: 0.55; }
+  .mock-2{ top: 60px; left: 8%; transform: rotate(2deg); z-index: 2; opacity: 0.8;}
+  .mock-3{ top: 30px; left: 12%; width: 84%; transform: rotate(-1deg); z-index: 3;
+           border-color: var(--mustard-dim); }
+
+  .mock-bar{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .mock-dot{ width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .mock-3 .mock-dot:nth-child(1){ background: #a3791c; }
+  .mock-3 .mock-dot:nth-child(2){ background: var(--mustard); }
+  .mock-url{
+    margin-left: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--bg-alt);
+    padding: 3px 10px;
+    border-radius: 20px;
+    flex: 1;
+  }
+
+  .mock-body{
+    aspect-ratio: 16/10;
+    background:
+      repeating-linear-gradient(135deg, var(--bg-alt) 0px, var(--bg-alt) 2px, transparent 2px, transparent 14px),
+      var(--bg-alt);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .play-badge{
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 1px solid var(--mustard-dim);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--mustard);
+  }
+
+  /* ---------- INTRO / WELCOME ---------- */
+
+  .intro{
+    padding: 70px 0;
+    border-top: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft);
+    background: var(--bg-alt);
+  }
+
+  .intro-inner{
+    display: grid;
+    grid-template-columns: 0.7fr 1.3fr;
+    gap: 60px;
+  }
+
+  .intro h2{
+    font-size: 28px;
+    line-height: 1.25;
+  }
+
+  .intro-copy p{
+    color: var(--text-dim);
+    font-size: 16px;
+    margin-bottom: 16px;
+    max-width: 600px;
+  }
+
+  .intro-copy strong{ color: var(--text); font-weight: 500; }
+
+  .intro-list{
+    margin-top: 22px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .intro-list li{
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .intro-list li::before{
+    content: "";
+    width: 5px; height: 5px;
+    background: var(--mustard);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ---------- MUESTRAS ---------- */
+
+  .muestras{ padding: 96px 0; }
+
+  .muestras-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 48px;
+    gap: 30px;
+  }
+
+  .muestras-head h2{ font-size: 32px; margin-top: 14px; }
+  .muestras-head p{ color: var(--text-dim); max-width: 360px; font-size: 14px; }
+
+  .grid-muestras{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 28px;
+  }
+
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color .15s ease, transform .15s ease;
+  }
+  .card:hover{ border-color: var(--mustard-dim); transform: translateY(-3px); }
+
+  .card-bar{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 12px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .card-bar .mock-dot{ width: 7px; height: 7px; }
+  .card-url{
+    margin-left: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .card-media{
+    aspect-ratio: 16/10;
+    background: var(--bg-alt);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-media video{
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .card-media.placeholder{
+    background:
+      repeating-linear-gradient(135deg, #251e14 0px, #251e14 2px, transparent 2px, transparent 16px),
+      var(--bg-alt);
+  }
+  .card-media.placeholder::after{
+    content: "Muestra pendiente de agregar";
+    position: absolute;
+    bottom: 12px;
+    left: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-faint);
+  }
+
+  .card-body{ padding: 20px 22px 24px; }
+
+  .card-tag{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mustard);
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .card h3{
+    font-size: 19px;
+    margin-bottom: 8px;
+  }
+
+  .card p{
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+
+  /* ---------- CTA FINAL ---------- */
+
+  .cta-final{
+    padding: 90px 0;
+    text-align: center;
+    border-top: 1px solid var(--border-soft);
+  }
+  .cta-final h2{
+    font-size: 32px;
+    max-width: 620px;
+    margin: 16px auto 30px;
+  }
+  .cta-final .hero-ctas{ justify-content: center; }
+
+  /* ---------- FOOTER ---------- */
+
+  footer{
+    border-top: 1px solid var(--border-soft);
+    padding: 34px 0;
+  }
+  .footer-inner{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--text-faint);
+  }
+
+  @media (max-width: 880px){
+    .hero-grid, .intro-inner{ grid-template-columns: 1fr; }
+    .mock-stack{ height: 300px; margin-top: 20px; }
+    .hero h1{ font-size: 36px; }
+    .nav-links{ display: none; }
+    .muestras-head{ flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="nav-inner">
+    <a href="#" class="wordmark">made<span>web</span></a>
+    <nav class="nav-links">
+      <a href="#muestras">Muestras</a>
+      <a href="#como-trabajamos">Cómo trabajamos</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+    <a href="#" id="whatsapp-link-nav" target="_blank" rel="noopener" class="btn btn-primary">Escríbenos</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="eyebrow">Diseño y desarrollo web</p>
+      <h1>Creamos la página web<br>que tu negocio <em>necesita</em></h1>
+      <p class="lead">
+        Bienvenido. Hacemos tanto mini-webs sencillas como páginas web completas,
+        para cualquier tipo de negocio —restaurantes, tiendas, talleres, consultorios,
+        colegios— y te mostramos cómo queda funcionando antes de que tomes una decisión.
+      </p>
+      <div class="hero-ctas">
+        <a href="#muestras" class="btn btn-primary">Ver muestras</a>
+        <a href="#contacto" class="btn btn-ghost">Cuéntanos tu negocio</a>
+      </div>
+      <div class="hero-tags">
+        <span>Mini-webs y páginas web completas</span>
+        <span>Diseño a la medida</span>
+        <span>La ves antes de publicarla</span>
+      </div>
+    </div>
+
+    <div class="mock-stack">
+      <div class="mock mock-1"><div class="mock-body"></div></div>
+      <div class="mock mock-2"><div class="mock-body"></div></div>
+      <div class="mock mock-3">
+        <div class="mock-bar">
+          <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+          <span class="mock-url">tunegocio.com</span>
+        </div>
+        <div class="mock-body">
+          <div class="play-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="intro" id="como-trabajamos">
+  <div class="wrap intro-inner">
+    <div>
+      <p class="eyebrow">Cómo trabajamos</p>
+      <h2>Antes de publicar nada,<br>tú la apruebas</h2>
+    </div>
+    <div class="intro-copy">
+      <p>
+        Podemos crear <strong>cualquier página web para cualquier tipo de negocio</strong> que
+        tengas: un restaurante, una tienda, un consultorio, un colegio, un taller. Diseñamos
+        la página completa y te la mostramos funcionando de verdad, tal como la
+        verían tus clientes.
+      </p>
+      <p>
+        Así decides con calma, pides los ajustes que necesites, y solo cuando estés
+        conforme la publicamos.
+      </p>
+      <ul class="intro-list">
+        <li>Diseño hecho para tu negocio, no una plantilla genérica</li>
+        <li>La ves funcionando antes de publicarla</li>
+        <li>Ajustes incluidos hasta que quedes conforme</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="muestras" id="muestras">
+  <div class="wrap">
+    <div class="muestras-head">
+      <div>
+        <p class="eyebrow">Muestras</p>
+        <h2>Así se ven en acción</h2>
+      </div>
+      <p>Cada proyecto tiene su propia muestra, mostrando la página real, funcionando.</p>
+    </div>
+
+    <div class="grid-muestras" id="grid-muestras"></div>
+  </div>
+</section>
+
+<section class="cta-final" id="contacto">
+  <div class="wrap">
+    <p class="eyebrow" style="justify-content:center;">Empecemos</p>
+    <h2>Cuéntanos qué negocio tienes y te mostramos cómo se vería su página</h2>
+    <div class="hero-ctas">
+      <a id="whatsapp-link" href="#" target="_blank" rel="noopener" class="btn btn-primary">Escribir por WhatsApp</a>
+      <a href="#muestras" class="btn btn-ghost">Ver más muestras</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-inner">
+    <span>madeweb — hacemos cualquier página web que necesites</span>
+    <span>Popayán, Cauca</span>
+  </div>
+</footer>
+
+<script>
+  /* ------------------------------------------------------------
+     1) Tu número de WhatsApp (con indicativo de país, sin espacios ni +)
+        Ejemplo Colombia: "573001234567"
+  ------------------------------------------------------------ */
+  const WHATSAPP_NUMERO = "573000000000";
+  const WHATSAPP_MENSAJE = "Hola, quiero una página web para mi negocio";
+
+  document.getElementById("whatsapp-link").href =
+    `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(WHATSAPP_MENSAJE)}`;
+  document.getElementById("whatsapp-link-nav").href =
+    `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(WHATSAPP_MENSAJE)}`;
+
+  /* ------------------------------------------------------------
+     2) Tus proyectos de muestra.
+        - video: ruta a tu archivo .mp4 (por ejemplo "videos/restaurante.mp4")
+                 o una URL. Si lo dejas vacío (""), se muestra un marcador
+                 de posición en vez del video.
+        - poster: imagen que se ve antes de dar play (opcional).
+  ------------------------------------------------------------ */
+  const MUESTRAS = [
+    {
+      categoria: "Restaurante",
+      dominio: "labraza-express.com",
+      titulo: "La Braza Express",
+      descripcion: "Menú, pedidos por WhatsApp y ubicación, pensado para comida rápida.",
+      video: "",
+      poster: ""
+    },
+    {
+      categoria: "Colegio",
+      dominio: "colegiosanjose.edu.co",
+      titulo: "Real Colegio San José",
+      descripcion: "Sistema de citas para docentes, psicólogos y coordinación académica.",
+      video: "",
+      poster: ""
+    },
+    {
+      categoria: "Restaurante",
+      dominio: "pedidomonserrate.com",
+      titulo: "Pedido Monserrate",
+      descripcion: "Pedidos en línea con checkout por WhatsApp y modo mesa por código QR.",
+      video: "",
+      poster: ""
+    },
+    {
+      categoria: "Tu negocio",
+      dominio: "tunegocio.com",
+      titulo: "Aquí va tu proyecto",
+      descripcion: "Cuéntanos qué necesitas y armamos tu página con su propio video.",
+      video: "",
+      poster: ""
+    }
+  ];
+
+  const grid = document.getElementById("grid-muestras");
+
+  MUESTRAS.forEach(m => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const mediaClass = m.video ? "card-media" : "card-media placeholder";
+    const mediaInner = m.video
+      ? `<video controls preload="metadata" ${m.poster ? `poster="${m.poster}"` : ""}>
+           <source src="${m.video}" type="video/mp4">
+         </video>`
+      : "";
+
+    card.innerHTML = `
+      <div class="card-bar">
+        <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
+        <span class="card-url">${m.dominio}</span>
+      </div>
+      <div class="${mediaClass}">${mediaInner}</div>
+      <div class="card-body">
+        <span class="card-tag">${m.categoria}</span>
+        <h3>${m.titulo}</h3>
+        <p>${m.descripcion}</p>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+</script>
+
+</body>
+</html>
