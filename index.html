@@ -814,10 +814,6 @@
         <input type="text" id="f-categoria" placeholder="Ej: Peluquería">
       </div>
       <div class="field">
-        <label for="f-dominio">Dominio a mostrar</label>
-        <input type="text" id="f-dominio" placeholder="Ej: salonbella.com">
-      </div>
-      <div class="field">
         <label for="f-descripcion">Descripción corta</label>
         <input type="text" id="f-descripcion" placeholder="Qué hace la página, en una línea">
       </div>
@@ -943,7 +939,6 @@
       card.innerHTML = `
         <div class="card-bar">
           <span class="mock-dot"></span><span class="mock-dot"></span><span class="mock-dot"></span>
-          <span class="card-url">${m.dominio}</span>
         </div>
         <div class="${mediaClass}">${mediaInner}</div>
         <div class="card-body">
@@ -1027,7 +1022,7 @@
       row.innerHTML = `
         <div class="admin-item-info">
           <b>${m.titulo}</b>
-          <span>${m.categoria} · ${m.dominio}${m.video ? "" : " · sin video"}</span>
+          <span>${m.categoria}${m.video ? "" : " · sin video"}</span>
         </div>
         <div class="admin-item-actions">
           <button class="icon-btn" data-edit="${m.id}">Editar</button>
@@ -1054,7 +1049,6 @@
     const m = muestras.find(x => x.id === id);
     document.getElementById("f-titulo").value = m.titulo;
     document.getElementById("f-categoria").value = m.categoria;
-    document.getElementById("f-dominio").value = m.dominio;
     document.getElementById("f-descripcion").value = m.descripcion;
     document.getElementById("f-video").value = m.video || "";
     document.getElementById("btn-save").textContent = "Guardar cambios";
@@ -1064,7 +1058,7 @@
 
   function limpiarFormulario(){
     editandoId = null;
-    ["f-titulo","f-categoria","f-dominio","f-descripcion","f-video"].forEach(id => {
+    ["f-titulo","f-categoria","f-descripcion","f-video"].forEach(id => {
       document.getElementById(id).value = "";
     });
     document.getElementById("dz-text").textContent = "Arrastra tu video aquí, o haz clic para elegirlo";
@@ -1139,12 +1133,11 @@
   document.getElementById("btn-save").addEventListener("click", async () => {
     const titulo = document.getElementById("f-titulo").value.trim();
     const categoria = document.getElementById("f-categoria").value.trim();
-    const dominio = document.getElementById("f-dominio").value.trim();
     const descripcion = document.getElementById("f-descripcion").value.trim();
     const video = document.getElementById("f-video").value.trim();
 
-    if (!titulo || !dominio) {
-      alert("Al menos pon un nombre de proyecto y un dominio.");
+    if (!titulo) {
+      alert("Al menos pon un nombre de proyecto.");
       return;
     }
 
@@ -1153,12 +1146,11 @@
 
     try {
       if (editandoId !== null) {
-        await updateDoc(doc(db, "muestras", editandoId), { titulo, categoria: categoria || "Proyecto", dominio, descripcion, video });
+        await updateDoc(doc(db, "muestras", editandoId), { titulo, categoria: categoria || "Proyecto", descripcion, video });
       } else {
         await addDoc(muestrasCol, {
           titulo,
           categoria: categoria || "Proyecto",
-          dominio,
           descripcion,
           video,
           orden: Date.now()
