@@ -689,7 +689,11 @@
   <div class="overlay-box small">
     <button class="overlay-close" data-close="overlay-login">&times;</button>
     <h3>Administrar muestras</h3>
-    <p class="sub">Ingresa la contraseña para agregar, editar o borrar muestras.</p>
+    <p class="sub">Ingresa con tu cuenta para agregar, editar o borrar muestras.</p>
+    <div class="field">
+      <label for="admin-email">Correo</label>
+      <input type="email" id="admin-email" placeholder="tucorreo@ejemplo.com">
+    </div>
     <div class="field">
       <label for="admin-pass">Contraseña</label>
       <input type="password" id="admin-pass" placeholder="••••••••">
@@ -697,7 +701,7 @@
     <div class="form-actions">
       <button class="btn btn-primary" id="btn-login" style="width:100%;">Entrar</button>
     </div>
-    <p class="admin-msg" id="login-error">Contraseña incorrecta.</p>
+    <p class="admin-msg" id="login-error">Correo o contraseña incorrectos.</p>
   </div>
 </div>
 
@@ -708,7 +712,7 @@
     <div class="admin-panel-head">
       <div>
         <h3>Panel de muestras</h3>
-        <p class="sub">Los cambios se guardan en este navegador. Para que se vean en el sitio publicado, copia el código al final y envíalo a quien lo publica.</p>
+        <p class="sub">Los cambios se guardan al instante y se ven para todos los visitantes del sitio.</p>
       </div>
       <button class="icon-btn" id="btn-logout">Salir</button>
     </div>
@@ -731,9 +735,9 @@
         <input type="text" id="f-descripcion" placeholder="Qué hace la página, en una línea">
       </div>
       <div class="field">
-        <label for="f-video">Link del video</label>
-        <input type="text" id="f-video" placeholder="https://... (enlace directo al video, ej. de YouTube o Google Drive)">
-        <p class="hint">Sube el video a algún lugar (YouTube, Google Drive, etc.) y pega aquí el link. Esta página no puede recibir archivos directamente.</p>
+        <label for="f-video-file">Video</label>
+        <input type="file" id="f-video-file" accept="video/*">
+        <p class="hint" id="video-status">Elige el archivo de video de este proyecto.</p>
       </div>
       <div class="form-actions">
         <button class="btn btn-primary" id="btn-save">Agregar muestra</button>
@@ -746,24 +750,24 @@
 
     <h3 style="font-size:16px;">Muestras actuales</h3>
     <div class="admin-list" id="admin-list"></div>
-
-    <div class="divider"></div>
-
-    <div class="export-box">
-      <div class="field">
-        <label>Código para publicar (cópialo y envíalo a quien actualiza el sitio)</label>
-        <textarea id="export-code" readonly></textarea>
-      </div>
-      <button class="icon-btn" id="btn-copy-export">Copiar código</button>
-      <p class="admin-msg" id="copy-msg">Copiado.</p>
-    </div>
   </div>
 </div>
 
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+    onSnapshot, orderBy, query, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    getStorage, ref, uploadBytesResumable, getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
   /* ------------------------------------------------------------
      1) Tu número de WhatsApp (con indicativo de país, sin espacios ni +)
-        Ejemplo Colombia: "573001234567"
   ------------------------------------------------------------ */
   const WHATSAPP_NUMERO = "573000000000";
   const WHATSAPP_MENSAJE = "Hola, quiero una página web para mi negocio";
@@ -774,60 +778,37 @@
     `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(WHATSAPP_MENSAJE)}`;
 
   /* ------------------------------------------------------------
-     2) Tus proyectos de muestra (valores por defecto — se usan la
-        primera vez, antes de que agregues/edites nada desde el panel).
-        - video: link directo al video (YouTube, Drive, tu propio hosting...).
-          Si lo dejas vacío (""), se muestra un marcador de posición.
-        - poster: imagen que se ve antes de dar play (opcional).
+     2) Conexión a Firebase
   ------------------------------------------------------------ */
-  const MUESTRAS_POR_DEFECTO = [
-    {
-      categoria: "Restaurante",
-      dominio: "labraza-express.com",
-      titulo: "La Braza Express",
-      descripcion: "Menú, pedidos por WhatsApp y ubicación, pensado para comida rápida.",
-      video: "",
-      poster: ""
-    },
-    {
-      categoria: "Colegio",
-      dominio: "colegiosanjose.edu.co",
-      titulo: "Real Colegio San José",
-      descripcion: "Sistema de citas para docentes, psicólogos y coordinación académica.",
-      video: "",
-      poster: ""
-    },
-    {
-      categoria: "Restaurante",
-      dominio: "pedidomonserrate.com",
-      titulo: "Pedido Monserrate",
-      descripcion: "Pedidos en línea con checkout por WhatsApp y modo mesa por código QR.",
-      video: "",
-      poster: ""
-    },
-    {
-      categoria: "Tu negocio",
-      dominio: "tunegocio.com",
-      titulo: "Aquí va tu proyecto",
-      descripcion: "Cuéntanos qué necesitas y armamos tu página con su propio video.",
-      video: "",
-      poster: ""
-    }
-  ];
+  const firebaseConfig = {
+    apiKey: "AIzaSyDZnFXH7z5eJJxtcF2F2-sSIhnqNC4AXgM",
+    authDomain: "webmade-22c9a.firebaseapp.com",
+    projectId: "webmade-22c9a",
+    storageBucket: "webmade-22c9a.firebasestorage.app",
+    messagingSenderId: "19120377753",
+    appId: "1:19120377753:web:49746e3b8a6f1003750d08"
+  };
 
-  /* ------------------------------------------------------------
-     3) Contraseña del panel de administración.
-        Aviso: esta contraseña queda visible en el código de la
-        página. Sirve como candado sencillo, no como seguridad real
-        — no la uses también en otras cuentas importantes.
-  ------------------------------------------------------------ */
-  const ADMIN_PASSWORD = "web123";
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
 
-  const STORAGE_KEY = "madeweb-muestras";
-  let muestras = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null") || MUESTRAS_POR_DEFECTO.slice();
-  let editandoIndex = null;
+  const muestrasCol = collection(db, "muestras");
+
+  let muestras = [];
+  let editandoId = null;
+  let videoSubidoURL = null;
 
   const grid = document.getElementById("grid-muestras");
+
+  /* ---------------- Grilla pública: se actualiza sola en tiempo real ---------------- */
+
+  onSnapshot(query(muestrasCol, orderBy("orden", "asc")), (snap) => {
+    muestras = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderGrid();
+    if (overlayAdmin.classList.contains("open")) renderAdminList();
+  });
 
   function renderGrid(){
     grid.innerHTML = "";
@@ -837,9 +818,7 @@
 
       const mediaClass = m.video ? "card-media" : "card-media placeholder";
       const mediaInner = m.video
-        ? `<video controls preload="metadata" ${m.poster ? `poster="${m.poster}"` : ""}>
-             <source src="${m.video}" type="video/mp4">
-           </video>`
+        ? `<video controls preload="metadata"><source src="${m.video}" type="video/mp4"></video>`
         : "";
 
       card.innerHTML = `
@@ -858,22 +837,13 @@
     });
   }
 
-  function guardar(){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(muestras));
-    renderGrid();
-    renderAdminList();
-    renderExport();
-  }
-
-  renderGrid();
-
   /* ---------------- ADMIN: apertura y cierre de ventanas ---------------- */
 
   const overlayLogin = document.getElementById("overlay-login");
   const overlayAdmin = document.getElementById("overlay-admin");
 
   document.getElementById("btn-open-login").addEventListener("click", () => {
-    if (sessionStorage.getItem("madeweb-admin") === "1") {
+    if (auth.currentUser) {
       abrirAdmin();
     } else {
       overlayLogin.classList.add("open");
@@ -886,28 +856,28 @@
     });
   });
 
-  document.getElementById("btn-login").addEventListener("click", () => {
-    const val = document.getElementById("admin-pass").value;
-    if (val === ADMIN_PASSWORD) {
-      sessionStorage.setItem("madeweb-admin", "1");
+  document.getElementById("btn-login").addEventListener("click", async () => {
+    const email = document.getElementById("admin-email").value.trim();
+    const pass = document.getElementById("admin-pass").value;
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
       document.getElementById("admin-pass").value = "";
       document.getElementById("login-error").classList.remove("show");
       overlayLogin.classList.remove("open");
       abrirAdmin();
-    } else {
+    } catch (e) {
       document.getElementById("login-error").classList.add("show");
     }
   });
 
-  document.getElementById("btn-logout").addEventListener("click", () => {
-    sessionStorage.removeItem("madeweb-admin");
+  document.getElementById("btn-logout").addEventListener("click", async () => {
+    await signOut(auth);
     overlayAdmin.classList.remove("open");
   });
 
   function abrirAdmin(){
     overlayAdmin.classList.add("open");
     renderAdminList();
-    renderExport();
   }
 
   /* ---------------- ADMIN: lista, agregar, editar, borrar ---------------- */
@@ -915,7 +885,7 @@
   function renderAdminList(){
     const list = document.getElementById("admin-list");
     list.innerHTML = "";
-    muestras.forEach((m, i) => {
+    muestras.forEach(m => {
       const row = document.createElement("div");
       row.className = "admin-list-item";
       row.innerHTML = `
@@ -924,92 +894,120 @@
           <span>${m.categoria} · ${m.dominio}${m.video ? "" : " · sin video"}</span>
         </div>
         <div class="admin-item-actions">
-          <button class="icon-btn" data-edit="${i}">Editar</button>
-          <button class="icon-btn danger" data-del="${i}">Borrar</button>
+          <button class="icon-btn" data-edit="${m.id}">Editar</button>
+          <button class="icon-btn danger" data-del="${m.id}">Borrar</button>
         </div>
       `;
       list.appendChild(row);
     });
 
     list.querySelectorAll("[data-edit]").forEach(btn => {
-      btn.addEventListener("click", () => cargarParaEditar(Number(btn.dataset.edit)));
+      btn.addEventListener("click", () => cargarParaEditar(btn.dataset.edit));
     });
     list.querySelectorAll("[data-del]").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         if (confirm("¿Borrar esta muestra?")) {
-          muestras.splice(Number(btn.dataset.del), 1);
-          guardar();
+          await deleteDoc(doc(db, "muestras", btn.dataset.del));
         }
       });
     });
   }
 
-  function cargarParaEditar(i){
-    editandoIndex = i;
-    const m = muestras[i];
+  function cargarParaEditar(id){
+    editandoId = id;
+    const m = muestras.find(x => x.id === id);
     document.getElementById("f-titulo").value = m.titulo;
     document.getElementById("f-categoria").value = m.categoria;
     document.getElementById("f-dominio").value = m.dominio;
     document.getElementById("f-descripcion").value = m.descripcion;
-    document.getElementById("f-video").value = m.video;
+    document.getElementById("f-video-file").value = "";
+    videoSubidoURL = null;
+    document.getElementById("video-status").textContent = m.video
+      ? "Ya tiene un video. Elige uno nuevo solo si quieres reemplazarlo."
+      : "Elige el archivo de video de este proyecto.";
     document.getElementById("btn-save").textContent = "Guardar cambios";
     document.getElementById("btn-cancel-edit").style.display = "inline-flex";
     document.getElementById("admin-form-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function limpiarFormulario(){
-    editandoIndex = null;
-    ["f-titulo","f-categoria","f-dominio","f-descripcion","f-video"].forEach(id => {
+    editandoId = null;
+    videoSubidoURL = null;
+    ["f-titulo","f-categoria","f-dominio","f-descripcion"].forEach(id => {
       document.getElementById(id).value = "";
     });
+    document.getElementById("f-video-file").value = "";
+    document.getElementById("video-status").textContent = "Elige el archivo de video de este proyecto.";
     document.getElementById("btn-save").textContent = "Agregar muestra";
     document.getElementById("btn-cancel-edit").style.display = "none";
   }
 
   document.getElementById("btn-cancel-edit").addEventListener("click", limpiarFormulario);
 
-  document.getElementById("btn-save").addEventListener("click", () => {
+  /* Sube el video apenas se elige el archivo */
+  document.getElementById("f-video-file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const status = document.getElementById("video-status");
+    status.textContent = "Subiendo video... 0%";
+
+    const fileRef = ref(storage, `videos/${Date.now()}-${file.name}`);
+    const task = uploadBytesResumable(fileRef, file);
+
+    task.on("state_changed",
+      (snap) => {
+        const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+        status.textContent = `Subiendo video... ${pct}%`;
+      },
+      (err) => {
+        status.textContent = "Hubo un error subiendo el video. Intenta de nuevo.";
+      },
+      async () => {
+        videoSubidoURL = await getDownloadURL(task.snapshot.ref);
+        status.textContent = "Video listo ✓";
+      }
+    );
+  });
+
+  document.getElementById("btn-save").addEventListener("click", async () => {
     const titulo = document.getElementById("f-titulo").value.trim();
     const categoria = document.getElementById("f-categoria").value.trim();
     const dominio = document.getElementById("f-dominio").value.trim();
     const descripcion = document.getElementById("f-descripcion").value.trim();
-    const video = document.getElementById("f-video").value.trim();
 
     if (!titulo || !dominio) {
       alert("Al menos pon un nombre de proyecto y un dominio.");
       return;
     }
 
-    const nueva = { titulo, categoria: categoria || "Proyecto", dominio, descripcion, video, poster: "" };
+    const btn = document.getElementById("btn-save");
+    btn.disabled = true;
 
-    if (editandoIndex !== null) {
-      muestras[editandoIndex] = nueva;
-    } else {
-      muestras.push(nueva);
+    try {
+      if (editandoId !== null) {
+        const datos = { titulo, categoria: categoria || "Proyecto", dominio, descripcion };
+        if (videoSubidoURL) datos.video = videoSubidoURL;
+        await updateDoc(doc(db, "muestras", editandoId), datos);
+      } else {
+        await addDoc(muestrasCol, {
+          titulo,
+          categoria: categoria || "Proyecto",
+          dominio,
+          descripcion,
+          video: videoSubidoURL || "",
+          orden: Date.now()
+        });
+      }
+
+      limpiarFormulario();
+      const msg = document.getElementById("save-msg");
+      msg.classList.add("show");
+      setTimeout(() => msg.classList.remove("show"), 2000);
+    } catch (e) {
+      alert("No se pudo guardar. Revisa tu conexión e intenta de nuevo.");
+    } finally {
+      btn.disabled = false;
     }
-
-    guardar();
-    limpiarFormulario();
-
-    const msg = document.getElementById("save-msg");
-    msg.classList.add("show");
-    setTimeout(() => msg.classList.remove("show"), 2000);
-  });
-
-  /* ---------------- ADMIN: exportar código para publicar ---------------- */
-
-  function renderExport(){
-    const codigo = "const MUESTRAS_POR_DEFECTO = " + JSON.stringify(muestras, null, 2) + ";";
-    document.getElementById("export-code").value = codigo;
-  }
-
-  document.getElementById("btn-copy-export").addEventListener("click", () => {
-    const box = document.getElementById("export-code");
-    box.select();
-    document.execCommand("copy");
-    const msg = document.getElementById("copy-msg");
-    msg.classList.add("show");
-    setTimeout(() => msg.classList.remove("show"), 2000);
   });
 </script>
 
