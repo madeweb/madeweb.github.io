@@ -571,6 +571,93 @@
     font-size: 11.5px;
     resize: vertical;
   }
+
+  /* ---------- DROPZONE DE VIDEO ---------- */
+
+  .dropzone{
+    border: 1.5px dashed var(--border);
+    border-radius: 6px;
+    padding: 22px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+    margin-top: 4px;
+  }
+  .dropzone:hover, .dropzone.dragover{
+    border-color: var(--mustard-dim);
+    background: rgba(217,165,33,0.06);
+  }
+  .dropzone p{
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 0;
+  }
+  .dropzone .dz-sub{
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 4px;
+  }
+  .dz-progress{
+    margin-top: 10px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    display: none;
+  }
+  .dz-progress.show{ display: block; }
+  .dz-progress-bar{
+    height: 100%;
+    width: 0%;
+    background: var(--mustard);
+    transition: width .15s ease;
+  }
+
+  /* ---------- CARD: reproducir en grande ---------- */
+
+  .card-media{ cursor: default; }
+  .card-media.has-video{ cursor: pointer; }
+  .card-media.has-video::before{
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.15);
+    opacity: 0;
+    transition: opacity .15s ease;
+    pointer-events: none;
+  }
+  .card-media.has-video:hover::before{ opacity: 1; }
+
+  /* ---------- VIDEO MODAL ---------- */
+
+  .video-modal-box{
+    background: transparent;
+    border: none;
+    padding: 0;
+    width: 100%;
+    max-width: 880px;
+  }
+  .video-modal-box .overlay-close{
+    top: -34px;
+    right: 0;
+    color: var(--text);
+    font-size: 26px;
+  }
+  .video-modal-frame{
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 40px 80px -20px rgba(0,0,0,0.7);
+  }
+  .video-modal-frame video, .video-modal-frame iframe{
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: none;
+  }
 </style>
 </head>
 <body>
@@ -735,9 +822,17 @@
         <input type="text" id="f-descripcion" placeholder="Qué hace la página, en una línea">
       </div>
       <div class="field">
-        <label for="f-video-file">Video</label>
-        <input type="file" id="f-video-file" accept="video/*">
-        <p class="hint" id="video-status">Elige el archivo de video de este proyecto.</p>
+        <label for="f-video">Link del video</label>
+        <input type="text" id="f-video" placeholder="https://... (YouTube, Google Drive, o link directo a un .mp4)">
+        <p class="hint">Pega un link, o arrastra el archivo abajo y se llena solo.</p>
+      </div>
+      <div class="field">
+        <div class="dropzone" id="dropzone">
+          <p id="dz-text">Arrastra tu video aquí, o haz clic para elegirlo</p>
+          <p class="dz-sub">MP4 recomendado</p>
+          <div class="dz-progress" id="dz-progress"><div class="dz-progress-bar" id="dz-progress-bar"></div></div>
+        </div>
+        <input type="file" id="f-video-file" accept="video/*" style="display:none;">
       </div>
       <div class="form-actions">
         <button class="btn btn-primary" id="btn-save">Agregar muestra</button>
@@ -753,6 +848,14 @@
   </div>
 </div>
 
+<!-- VIDEO EN GRANDE -->
+<div class="overlay" id="overlay-video">
+  <div class="overlay-box video-modal-box">
+    <button class="overlay-close" data-close="overlay-video">&times;</button>
+    <div class="video-modal-frame" id="video-modal-frame"></div>
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
@@ -760,11 +863,8 @@
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import {
     getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
-    onSnapshot, orderBy, query, serverTimestamp
+    onSnapshot, orderBy, query
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import {
-    getStorage, ref, uploadBytesResumable, getDownloadURL
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
   /* ------------------------------------------------------------
      1) Tu número de WhatsApp (con indicativo de país, sin espacios ni +)
@@ -792,13 +892,19 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  const storage = getStorage(app);
+
+  /* ------------------------------------------------------------
+     3) Cloudinary — para poder arrastrar y subir el archivo de video
+        directamente (gratis, sin tarjeta). Pon aquí tu cloud name y
+        el nombre del upload preset "unsigned" que crees en tu cuenta.
+  ------------------------------------------------------------ */
+  const CLOUDINARY_CLOUD_NAME = "TU_CLOUD_NAME";
+  const CLOUDINARY_UPLOAD_PRESET = "TU_UPLOAD_PRESET";
 
   const muestrasCol = collection(db, "muestras");
 
   let muestras = [];
   let editandoId = null;
-  let videoSubidoURL = null;
 
   const grid = document.getElementById("grid-muestras");
 
@@ -810,16 +916,29 @@
     if (overlayAdmin.classList.contains("open")) renderAdminList();
   });
 
+  function urlIncrustable(url){
+    if (!url) return null;
+    let m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+    if (m) return `https://www.youtube.com/embed/${m[1]}`;
+    m = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/);
+    if (m) return `https://drive.google.com/file/d/${m[1]}/preview`;
+    return null;
+  }
+
   function renderGrid(){
     grid.innerHTML = "";
     muestras.forEach(m => {
       const card = document.createElement("div");
       card.className = "card";
 
-      const mediaClass = m.video ? "card-media" : "card-media placeholder";
-      const mediaInner = m.video
-        ? `<video controls preload="metadata"><source src="${m.video}" type="video/mp4"></video>`
-        : "";
+      const embed = urlIncrustable(m.video);
+      const mediaClass = m.video ? "card-media has-video" : "card-media placeholder";
+      let mediaInner = "";
+      if (embed) {
+        mediaInner = `<iframe src="${embed}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="width:100%;height:100%;pointer-events:none;"></iframe>`;
+      } else if (m.video) {
+        mediaInner = `<video preload="metadata" muted style="pointer-events:none;"><source src="${m.video}" type="video/mp4"></video>`;
+      }
 
       card.innerHTML = `
         <div class="card-bar">
@@ -833,8 +952,22 @@
           <p>${m.descripcion}</p>
         </div>
       `;
+
+      if (m.video) {
+        card.querySelector(".card-media").addEventListener("click", () => abrirVideo(m.video));
+      }
+
       grid.appendChild(card);
     });
+  }
+
+  function abrirVideo(url){
+    const frame = document.getElementById("video-modal-frame");
+    const embed = urlIncrustable(url);
+    frame.innerHTML = embed
+      ? `<iframe src="${embed}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`
+      : `<video src="${url}" controls autoplay></video>`;
+    document.getElementById("overlay-video").classList.add("open");
   }
 
   /* ---------------- ADMIN: apertura y cierre de ventanas ---------------- */
@@ -853,6 +986,9 @@
   document.querySelectorAll("[data-close]").forEach(btn => {
     btn.addEventListener("click", () => {
       document.getElementById(btn.dataset.close).classList.remove("open");
+      if (btn.dataset.close === "overlay-video") {
+        document.getElementById("video-modal-frame").innerHTML = "";
+      }
     });
   });
 
@@ -920,11 +1056,7 @@
     document.getElementById("f-categoria").value = m.categoria;
     document.getElementById("f-dominio").value = m.dominio;
     document.getElementById("f-descripcion").value = m.descripcion;
-    document.getElementById("f-video-file").value = "";
-    videoSubidoURL = null;
-    document.getElementById("video-status").textContent = m.video
-      ? "Ya tiene un video. Elige uno nuevo solo si quieres reemplazarlo."
-      : "Elige el archivo de video de este proyecto.";
+    document.getElementById("f-video").value = m.video || "";
     document.getElementById("btn-save").textContent = "Guardar cambios";
     document.getElementById("btn-cancel-edit").style.display = "inline-flex";
     document.getElementById("admin-form-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -932,48 +1064,84 @@
 
   function limpiarFormulario(){
     editandoId = null;
-    videoSubidoURL = null;
-    ["f-titulo","f-categoria","f-dominio","f-descripcion"].forEach(id => {
+    ["f-titulo","f-categoria","f-dominio","f-descripcion","f-video"].forEach(id => {
       document.getElementById(id).value = "";
     });
-    document.getElementById("f-video-file").value = "";
-    document.getElementById("video-status").textContent = "Elige el archivo de video de este proyecto.";
+    document.getElementById("dz-text").textContent = "Arrastra tu video aquí, o haz clic para elegirlo";
     document.getElementById("btn-save").textContent = "Agregar muestra";
     document.getElementById("btn-cancel-edit").style.display = "none";
   }
 
   document.getElementById("btn-cancel-edit").addEventListener("click", limpiarFormulario);
 
-  /* Sube el video apenas se elige el archivo */
-  document.getElementById("f-video-file").addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const status = document.getElementById("video-status");
-    status.textContent = "Subiendo video... 0%";
+  /* ---------------- Arrastrar / soltar video (sube a Cloudinary) ---------------- */
 
-    const fileRef = ref(storage, `videos/${Date.now()}-${file.name}`);
-    const task = uploadBytesResumable(fileRef, file);
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("f-video-file");
+  const dzText = document.getElementById("dz-text");
+  const dzProgress = document.getElementById("dz-progress");
+  const dzProgressBar = document.getElementById("dz-progress-bar");
 
-    task.on("state_changed",
-      (snap) => {
-        const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-        status.textContent = `Subiendo video... ${pct}%`;
-      },
-      (err) => {
-        status.textContent = "Hubo un error subiendo el video. Intenta de nuevo.";
-      },
-      async () => {
-        videoSubidoURL = await getDownloadURL(task.snapshot.ref);
-        status.textContent = "Video listo ✓";
-      }
-    );
+  dropzone.addEventListener("click", () => fileInput.click());
+  dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("dragover"); });
+  dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) subirVideo(e.dataTransfer.files[0]);
   });
+  fileInput.addEventListener("change", (e) => {
+    if (e.target.files[0]) subirVideo(e.target.files[0]);
+  });
+
+  function subirVideo(file){
+    if (!file.type.startsWith("video/")) {
+      alert("Ese archivo no parece ser un video.");
+      return;
+    }
+
+    const form = new FormData();
+    form.append("file", file);
+    form.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`);
+
+    dzText.textContent = "Subiendo...";
+    dzProgress.classList.add("show");
+    dzProgressBar.style.width = "0%";
+
+    xhr.upload.addEventListener("progress", (e) => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        dzProgressBar.style.width = pct + "%";
+        dzText.textContent = `Subiendo... ${pct}%`;
+      }
+    });
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const data = JSON.parse(xhr.responseText);
+        document.getElementById("f-video").value = data.secure_url;
+        dzText.textContent = "Video listo ✓ — puedes arrastrar otro para reemplazarlo";
+      } else {
+        dzText.textContent = "Hubo un error subiendo el video. Intenta de nuevo.";
+      }
+      dzProgress.classList.remove("show");
+    };
+    xhr.onerror = () => {
+      dzText.textContent = "Hubo un error subiendo el video. Intenta de nuevo.";
+      dzProgress.classList.remove("show");
+    };
+    xhr.send(form);
+  }
 
   document.getElementById("btn-save").addEventListener("click", async () => {
     const titulo = document.getElementById("f-titulo").value.trim();
     const categoria = document.getElementById("f-categoria").value.trim();
     const dominio = document.getElementById("f-dominio").value.trim();
     const descripcion = document.getElementById("f-descripcion").value.trim();
+    const video = document.getElementById("f-video").value.trim();
 
     if (!titulo || !dominio) {
       alert("Al menos pon un nombre de proyecto y un dominio.");
@@ -985,16 +1153,14 @@
 
     try {
       if (editandoId !== null) {
-        const datos = { titulo, categoria: categoria || "Proyecto", dominio, descripcion };
-        if (videoSubidoURL) datos.video = videoSubidoURL;
-        await updateDoc(doc(db, "muestras", editandoId), datos);
+        await updateDoc(doc(db, "muestras", editandoId), { titulo, categoria: categoria || "Proyecto", dominio, descripcion, video });
       } else {
         await addDoc(muestrasCol, {
           titulo,
           categoria: categoria || "Proyecto",
           dominio,
           descripcion,
-          video: videoSubidoURL || "",
+          video,
           orden: Date.now()
         });
       }
